@@ -1,8 +1,8 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include <PubSubClient.h>
 #include "secrets.h"
 #include "./thermistor/thermistor.h"
+#include "./local_connection_manager/local_connection_manager.h"
 
 #define THERMISTOR_PIN A0
 #define SERIES_RESISTOR 10000    // 10kΩ resistor
@@ -13,8 +13,9 @@
 char ssid[] = SECRET_SSID; // network SSID
 char pass[] = SECRET_PASS; // network password
 
-WiFiClient wifiClient;
-PubSubClient mqttClient(wifiClient);
+LocalConnectionManager localConnectionManager(ssid, pass);
+PubSubClient mqttClient(localConnectionManager.getWifiClient());
+
 Thermistor thermistor(SERIES_RESISTOR, NOMINAL_RESISTANCE, NOMINAL_TEMPERATURE, B_COEFFICIENT);
 
 const char broker[] = "192.168.55.102";
@@ -37,19 +38,7 @@ void setup()
   //; // wait for serial port to connect. Needed for native USB port only
   // }
 
-  Serial.print("Attempting to connect to WPA SSID: ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, pass) != WL_CONNECTED;
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(F("."));
-  }
-
-  Serial.println("You're connected to the network");
-  Serial.println();
+  localConnectionManager.connect();
 
   mqttClient.setServer(broker, port);
 
