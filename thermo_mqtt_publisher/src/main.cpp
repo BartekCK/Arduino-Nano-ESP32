@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "secrets.h"
+#include "./thermistor/thermistor.h"
 
 #define THERMISTOR_PIN A0
 #define SERIES_RESISTOR 10000    // 10kΩ resistor
@@ -14,8 +15,9 @@ char pass[] = SECRET_PASS; // network password
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+Thermistor thermistor(SERIES_RESISTOR, NOMINAL_RESISTANCE, NOMINAL_TEMPERATURE, B_COEFFICIENT);
 
-const char broker[] = "192.168.55.104";
+const char broker[] = "192.168.55.102";
 int port = 1883;
 const char topic[] = "temperature-topic";
 
@@ -83,30 +85,14 @@ void loop()
   mqttClient.loop(); // Maintain MQTT connection
 
   int rawValue = analogRead(THERMISTOR_PIN);
-  float voltage = rawValue * (3.3 / 4095.0); // convert value into voltage
-  float resistance = SERIES_RESISTOR * (3.3 / voltage - 1);
 
-  // Steinharta-Hart
-  float steinhart;
-  steinhart = resistance / NOMINAL_RESISTANCE;       // (R/Ro)
-  steinhart = log(steinhart);                        // ln(R/Ro)
-  steinhart /= B_COEFFICIENT;                        // 1/B * ln(R/Ro)
-  steinhart += 1.0 / (NOMINAL_TEMPERATURE + 273.15); // + (1/To)
-  steinhart = 1.0 / steinhart;                       // Inwersja
-  steinhart -= 273.15;                               // To celcious
-
-  Serial.print("Raw Value: ");
-  Serial.print(rawValue);
-  Serial.print(" Voltage: ");
-  Serial.print(voltage);
-  Serial.print("V Resistance: ");
-  Serial.print(resistance);
-  Serial.print(" ohms Temperature: ");
-  Serial.print(steinhart);
+  float celciousTemperature = thermistor.calculateCelciousTemperature(rawValue);
+  Serial.print("Celcious temperature: ");
+  Serial.print(celciousTemperature);
   Serial.println(" *C");
 
   char tempStr[16];
-  dtostrf(steinhart, 6, 2, tempStr);
+  dtostrf(celciousTemperature, 6, 2, tempStr);
   publishMessage(tempStr);
 
   delay(1000);
