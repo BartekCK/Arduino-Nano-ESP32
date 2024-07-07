@@ -38,5 +38,5 @@ void loop()
 
   mqttClient.publish(topic, tempStr);
 
-  delay(60000);
+  delay(1000);
 }
