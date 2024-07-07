@@ -10,7 +10,9 @@ Thermistor::Thermistor(int seriesResistor, int nominalResistance, int nominalTem
 
 float Thermistor::calculateCelciousTemperature(int rawValue)
 {
-    float resistance = this->seriesResistor / ((4095.0 / rawValue) - 1);
+
+    float voltage = rawValue * (3.3 / 4095.0);
+    float resistance = this->seriesResistor * (3.3 / voltage - 1);
     float steinhart;
 
     steinhart = resistance / this->nominalResistance;       // (R/Ro)
